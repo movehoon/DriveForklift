@@ -17,7 +17,7 @@ public class DotSensor : MonoBehaviour
 
     private void OnTriggerEnter(UnityEngine.Collider other)
     {
-        Debug.Log("OnTriggerEnter with " + other.gameObject.name);
+        //Debug.Log("OnTriggerEnter with " + other.gameObject.name);
         if (other.gameObject.name.Contains(TriggerObjectName))
         {
             _isDetected = true;
@@ -26,7 +26,7 @@ public class DotSensor : MonoBehaviour
 
     private void OnTriggerExit(UnityEngine.Collider other)
     {
-        Debug.Log("OnTriggerExit with " + other.gameObject.name);
+        //Debug.Log("OnTriggerExit with " + other.gameObject.name);
         if (other.gameObject.name.Contains(TriggerObjectName))
         {
             _isDetected = false;

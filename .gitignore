@@ -61,4 +61,5 @@ crashlytics-build.properties
 # Ignore External Library
 /Assets/FreeForkLift
 /Assets/RPG_FPS_game_assets_industrial
+!/[Aa]ssets/FreeForkLift/Scripts/NewCarController.cs
 

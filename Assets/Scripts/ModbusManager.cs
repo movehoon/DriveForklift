@@ -9,6 +9,7 @@ public class ModbusManager : MonoBehaviour
 {
     SerialPort _port;
     ModbusSerialMaster _master;
+    ModbusSerialSlave _slave;
 
     private const int SLAVE_ADDRESS = 1;
     //private const int COIL_ADDRESS = 0;
@@ -27,6 +28,28 @@ public class ModbusManager : MonoBehaviour
     private ushort[] mb_hreg_wr = new ushort[5];
 
     Dictionary<ushort, ushort> writeReg = new Dictionary<ushort, ushort>();
+
+    //public static void StartModbusSerialRtuSlave()
+    //{
+    //    using (SerialPort slavePort = new SerialPort("COM2"))
+    //    {
+    //        // configure serial port
+    //        slavePort.BaudRate = 9600;
+    //        slavePort.DataBits = 8;
+    //        slavePort.Parity = Parity.None;
+    //        slavePort.StopBits = StopBits.One;
+    //        slavePort.Open();
+
+    //        byte unitId = 1;
+
+    //        var adapter = new SerialPortAdapter(slavePort);
+    //        // create modbus slave
+    //        ModbusSlave slave = ModbusSerialSlave.CreateRtu(unitId, adapter);
+    //        slave.DataStore = DataStoreFactory.CreateDefaultDataStore();
+
+    //        slave.ListenAsync().GetAwaiter().GetResult();
+    //    }
+    //}
 
     public bool Connect(string portName)
     {
@@ -123,8 +146,8 @@ public class ModbusManager : MonoBehaviour
             //Debug.Log(mb_ists[1].ToString());
 
             mb_hreg = _master.ReadHoldingRegisters(SLAVE_ADDRESS, HREG_ADDRESS, 10);
-            Debug.Log(mb_hreg[0].ToString());
-            Debug.Log(mb_hreg[1].ToString());
+            //Debug.Log(mb_hreg[0].ToString());
+            //Debug.Log(mb_hreg[1].ToString());
 
             if (writeReg.Count > 0)
             {

@@ -14,8 +14,15 @@ public class Program : MonoBehaviour
 
     public Dropdown dropDown_PortNames;
     public Button button_Connect;
+    public InputField if_ActualSpeed;
+    public InputField if_ActualSteer;
+    public InputField if_SensorValue;
+    public InputField if_ControlPerSecond;
 
     public NewCarController m_Car; // the car controller we want to use
+
+    int controlCount;
+    float duration;
 
     public void OnButtonReset()
     {
@@ -62,7 +69,8 @@ public class Program : MonoBehaviour
         }
     }
 
-    private void FixedUpdate()
+    //private void FixedUpdate()
+    private void Update()
     {
         //Debug.Log("LineSensor: " + lineSensor.Value.ToString());
         float v = Input.GetAxis("Vertical");
@@ -115,18 +123,34 @@ public class Program : MonoBehaviour
         //    pos = h;
         //}
         //Debug.Log("LineSensor: " + lineSensor.Value.ToString() + ", h: " + h.ToString());
-        Debug.Log("v: " + v.ToString());
-        Debug.Log("CurrentVelocity: " + CurrentVelocity.ToString());
-        Debug.Log("m_Car.Revs: " + m_Car.Revs.ToString());
-        Debug.Log("m_Car.Skidding: " + m_Car.Skidding.ToString());
-        Debug.Log("m_Car.Forward: " + m_Car.Forward.ToString());
+        //Debug.Log("v: " + v.ToString());
+        //Debug.Log("CurrentVelocity: " + CurrentVelocity.ToString());
+        //Debug.Log("m_Car.Revs: " + m_Car.Revs.ToString());
+        //Debug.Log("m_Car.Skidding: " + m_Car.Skidding.ToString());
+        //Debug.Log("m_Car.Forward: " + m_Car.Forward.ToString());
+
+        if_ActualSpeed.text = CurrentVelocity.ToString("0.00");
+        if_ActualSteer.text = m_Car.CurrentSteerAngle.ToString("0.00");
+        if_SensorValue.text = lineSensor.Value.ToString();
+        controlCount++;
+        duration += Time.deltaTime;
+        if (duration > 1)
+        {
+            duration -= 1;
+            if_ControlPerSecond.text = controlCount.ToString() + "cps";
+            Debug.Log("cps: " + controlCount.ToString());
+            controlCount = 0;
+        }
+
+        float TargetSteerAngle = ((float)(short)modbusManager.GetRegister(5))/5000.0f;
 
         modbusManager.WriteRegister(0, (ushort)(CurrentVelocity * 1000));
         modbusManager.WriteRegister(1, (ushort)(m_Car.CurrentSteerAngle * 1000));
         modbusManager.WriteRegister(2, (ushort)lineSensor.Value);
+
 #if !MOBILE_INPUT
         float handbrake = Input.GetAxis("Jump");
-        m_Car.Move(h, v, v, handbrake);
+        m_Car.Move(TargetSteerAngle, v, v, handbrake);
 
 #else
             m_Car.Move(h, v, v, 0f);

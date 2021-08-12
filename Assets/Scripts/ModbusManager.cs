@@ -1,15 +1,22 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using System.IO.Ports;
+using System.Threading;
+using UnityEngine;
+using Modbus.Data;
 using Modbus.Device;
+using Modbus.IO;
+using Modbus.Utility;
+//using Modbus.Serial;
 
 public class ModbusManager : MonoBehaviour
 {
     SerialPort _port;
     ModbusSerialMaster _master;
     ModbusSerialSlave _slave;
+
+    Thread thread;
 
     private const int SLAVE_ADDRESS = 1;
     //private const int COIL_ADDRESS = 0;
@@ -51,6 +58,84 @@ public class ModbusManager : MonoBehaviour
     //    }
     //}
 
+    public void SetHReg(int addr, ushort value)
+    {
+        if (_slave != null)
+        {
+            if (_slave.DataStore != null)
+            {
+                _slave.DataStore.HoldingRegisters[addr] = value;
+            }
+        }
+    }
+    public ushort GetHReg(int addr)
+    {
+        if (_slave != null)
+        {
+            if (_slave.DataStore != null)
+            {
+                return _slave.DataStore.HoldingRegisters[addr];
+            }
+        }
+        return 0;
+    }
+
+    private void Modbus_Request_Event(object sender, Modbus.Device.ModbusSlaveRequestEventArgs e)
+    {
+
+        //disassemble packet from master
+        byte fc = e.Message.FunctionCode;
+        byte[] data = e.Message.MessageFrame;
+        byte[] byteStartAddress = new byte[] { data[3], data[2] };
+        byte[] byteNum = new byte[] { data[5], data[4] };
+        Int16 StartAddress = BitConverter.ToInt16(byteStartAddress, 0);
+        Int16 NumOfPoint = BitConverter.ToInt16(byteNum, 0);
+        //Console.WriteLine(fc.ToString() + "," + StartAddress.ToString() + "," + NumOfPoint.ToString());
+        Debug.Log("Modbus_Request_Event " + fc.ToString());
+    }
+
+    private void Modbus_DataStoreWriteTo(object sender, Modbus.Data.DataStoreEventArgs e)
+    {
+        //this.Text = "DataType=" + e.ModbusDataType.ToString() + "  StartAdress=" + e.StartAddress;
+        int iAddress = e.StartAddress;//e.StartAddress;
+        Debug.Log("Modbus_DataStoreWriteTo " + e.ModbusDataType.ToString());
+        switch (e.ModbusDataType)
+        {
+            case ModbusDataType.HoldingRegister:
+                for (int i = 0; i < e.Data.B.Count; i++)
+                {
+                    //Set AO                 
+                    _slave.DataStore.HoldingRegisters[e.StartAddress + i + 1] = e.Data.B[i];
+                    //e.Data.B[i] already write to slave.DataStore.HoldingRegisters[e.StartAddress + i + 1]
+                    //e.StartAddress starts from 0
+                    //You can set AO value to hardware here
+
+                    //DoAOUpdate(iAddress, e.Data.B[i].ToString());
+                    iAddress++;
+                }
+                break;
+
+            case ModbusDataType.Coil:
+                for (int i = 0; i < e.Data.A.Count; i++)
+                {
+                    //Set DO
+                    _slave.DataStore.CoilDiscretes[e.StartAddress + i + 1] = e.Data.A[i];
+                    //e.Data.A[i] already write to slave.DataStore.CoilDiscretes[e.StartAddress + i + 1]
+                    //e.StartAddress starts from 0
+                    //You can set DO value to hardware here
+
+                    //DoDOUpdate(iAddress, e.Data.A[i]);
+                    iAddress++;
+                    if (e.Data.A.Count == 1)
+                    {
+                        break;
+                    }
+                }
+                break;
+        }
+    } 
+
+
     public bool Connect(string portName)
     {
         if (_port == null && _master == null)
@@ -60,7 +145,21 @@ public class ModbusManager : MonoBehaviour
             _port.WriteTimeout = 500;
             _port.Open();
 
-            _master = ModbusSerialMaster.CreateRtu(_port);
+            //_master = ModbusSerialMaster.CreateRtu(_port);
+            //var adapter = new SerialPortAdapter(_port);
+            _slave = ModbusSerialSlave.CreateRtu(1, _port);
+            _slave.ModbusSlaveRequestReceived += new EventHandler<ModbusSlaveRequestEventArgs>(Modbus_Request_Event);
+            //_slave.ListenAsync().GetAwaiter().GetResult();
+            _slave.DataStore = Modbus.Data.DataStoreFactory.CreateTestDataStore();
+            _slave.DataStore.DataStoreWrittenTo += new EventHandler<DataStoreEventArgs>(Modbus_DataStoreWriteTo);
+
+            //_slave.Listen();
+            thread = new Thread(_Connect);
+            thread.Start();
+            //StartCoroutine("_Connect");
+
+            PlayerPrefs.SetString("DEV_NAME", portName);
+            Debug.Log("Modbus Connect Done");
 
             //ReadState();
             return true;
@@ -68,14 +167,54 @@ public class ModbusManager : MonoBehaviour
         return false;
     }
 
+    private void _Connect()
+    {
+        while (true)
+        {
+            try
+            {
+                _slave.Listen();
+            }
+            catch (Exception ex)
+            {
+                Debug.Log(ex.ToString());
+            }
+            Thread.Sleep(1000);
+        }
+    }
+
+    //private IEnumerator _Connect()
+    //{
+    //    while (true)
+    //    {
+    //        yield return new WaitForSeconds(0.01f);
+    //        _slave.Listen();
+    //    }
+    //}
+
     public void Disconnect()
     {
-        _master.Dispose();
-        _master = null;
+        if (thread != null)
+        {
+            thread.Abort();
+            thread = null;
+        }
 
-        _port.Close();
-        _port.Dispose();
-        _port = null;
+        //_master.Dispose();
+        //_master = null;
+
+        if (_slave != null)
+        {
+            _slave.Dispose();
+            _slave = null;
+        }
+
+        if (_port != null)
+        {
+            _port.Close();
+            _port.Dispose();
+            _port = null;
+        }
     }
 
     public bool IsConnected()
@@ -182,7 +321,7 @@ public class ModbusManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        StartCoroutine("Sync");
+        //StartCoroutine("Sync");
     }
 
     // Update is called once per frame
@@ -196,6 +335,15 @@ public class ModbusManager : MonoBehaviour
             //{
             //    SyncState();
             //}
+        }
+    }
+
+    private void OnApplicationQuit()
+    {
+        if (thread != null)
+        {
+            thread.Abort();
+            thread = null;
         }
     }
 

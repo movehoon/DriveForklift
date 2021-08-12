@@ -23,6 +23,7 @@ public class Program : MonoBehaviour
 
     int controlCount;
     float duration;
+    ushort modbusCount;
 
     public void OnButtonReset()
     {
@@ -66,6 +67,16 @@ public class Program : MonoBehaviour
         foreach (string portName in portNames)
         {
             dropDown_PortNames.options.Add(new Dropdown.OptionData() { text = portName });
+        }
+        string savedName = PlayerPrefs.GetString("DEV_NAME");
+        Debug.Log("Find " + savedName);
+        for (int i=0; i<dropDown_PortNames.options.Count; i++)
+        {
+            if (dropDown_PortNames.options[i].text.Equals(savedName))
+            {
+                dropDown_PortNames.value = i;
+                break;
+            }
         }
     }
 
@@ -138,16 +149,20 @@ public class Program : MonoBehaviour
         {
             duration -= 1;
             if_ControlPerSecond.text = controlCount.ToString() + "cps";
-            Debug.Log("cps: " + controlCount.ToString());
+            //Debug.Log("cps: " + controlCount.ToString());
             controlCount = 0;
         }
 
-        float TargetSteerAngle = ((float)(short)modbusManager.GetRegister(5))/5000.0f;
+        float TargetSteerAngle = ((float)(short)modbusManager.GetHReg(106))/5000.0f;
 
-        modbusManager.WriteRegister(0, (ushort)(CurrentVelocity * 1000));
-        modbusManager.WriteRegister(1, (ushort)(m_Car.CurrentSteerAngle * 1000));
-        modbusManager.WriteRegister(2, (ushort)lineSensor.Value);
-
+        modbusCount++;
+        modbusManager.SetHReg(101, modbusCount);
+        modbusManager.SetHReg(102, (ushort)(CurrentVelocity * 1000));
+        modbusManager.SetHReg(103, (ushort)(m_Car.CurrentSteerAngle * 1000));
+        modbusManager.SetHReg(104, (ushort)lineSensor.Value);
+        //Debug.Log("Hreg102: " + modbusManager.GetHReg(102));
+        //Debug.Log("Hreg105: " + modbusManager.GetHReg(105));
+        //Debug.Log("Hreg106: " + modbusManager.GetHReg(106));
 #if !MOBILE_INPUT
         float handbrake = Input.GetAxis("Jump");
         m_Car.Move(TargetSteerAngle, v, v, handbrake);

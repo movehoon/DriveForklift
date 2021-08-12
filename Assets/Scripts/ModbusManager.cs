@@ -17,6 +17,7 @@ public class ModbusManager : MonoBehaviour
     ModbusSerialSlave _slave;
 
     Thread thread;
+    bool _reqReconnect;
 
     private const int SLAVE_ADDRESS = 1;
     //private const int COIL_ADDRESS = 0;
@@ -91,14 +92,14 @@ public class ModbusManager : MonoBehaviour
         Int16 StartAddress = BitConverter.ToInt16(byteStartAddress, 0);
         Int16 NumOfPoint = BitConverter.ToInt16(byteNum, 0);
         //Console.WriteLine(fc.ToString() + "," + StartAddress.ToString() + "," + NumOfPoint.ToString());
-        Debug.Log("Modbus_Request_Event " + fc.ToString());
+        //Debug.Log("Modbus_Request_Event " + fc.ToString());
     }
 
     private void Modbus_DataStoreWriteTo(object sender, Modbus.Data.DataStoreEventArgs e)
     {
         //this.Text = "DataType=" + e.ModbusDataType.ToString() + "  StartAdress=" + e.StartAddress;
         int iAddress = e.StartAddress;//e.StartAddress;
-        Debug.Log("Modbus_DataStoreWriteTo " + e.ModbusDataType.ToString());
+        //Debug.Log("Modbus_DataStoreWriteTo " + e.ModbusDataType.ToString());
         switch (e.ModbusDataType)
         {
             case ModbusDataType.HoldingRegister:
@@ -177,6 +178,7 @@ public class ModbusManager : MonoBehaviour
             }
             catch (Exception ex)
             {
+                _reqReconnect = true;
                 Debug.Log(ex.ToString());
             }
             Thread.Sleep(1000);
@@ -215,6 +217,12 @@ public class ModbusManager : MonoBehaviour
             _port.Dispose();
             _port = null;
         }
+    }
+
+    void Reconnect()
+    {
+        Disconnect();
+        Connect(PlayerPrefs.GetString("DEV_NAME"));
     }
 
     public bool IsConnected()
@@ -335,6 +343,12 @@ public class ModbusManager : MonoBehaviour
             //{
             //    SyncState();
             //}
+        }
+
+        if (_reqReconnect)
+        {
+            _reqReconnect = false;
+            Reconnect();
         }
     }
 

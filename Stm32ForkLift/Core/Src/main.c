@@ -118,11 +118,15 @@ void StartDefaultTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-int __io_putchar(int ch) {
-	uint8_t c[1];
-	c[0] = ch & 0x00FF;
-	HAL_UART_Transmit(&huart1, &*c, 1, 0xFFFF);
-	return ch;
+//int __io_putchar(int ch) {
+//	uint8_t c[1];
+//	c[0] = ch & 0x00FF;
+//	HAL_UART_Transmit(&huart1, &*c, 1, 0xFFFF);
+//	return ch;
+//}
+int _write(int file, char *ptr, int len) {
+	CDC_Transmit_FS(ptr, len);
+	return (len);
 }
 extern void ModbusRTUTask(void *argument);
 

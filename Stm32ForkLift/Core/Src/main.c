@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
+#include "usbd_cdc_if.h"
 
 /* USER CODE END Includes */
 
@@ -256,7 +257,7 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
-  PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL;
+  PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV1_5;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
@@ -610,6 +611,8 @@ void StartDefaultTask(void *argument)
 
 //    mb_read_hreg_req_f = true;
     mb_write_hreg_req_f = true;
+
+    CDC_Transmit_FS(MLS_MODBUS, sizeof(MLS_MODBUS));
 
 	memset(uart1_buff, 255, 0);
 	HAL_UART_Transmit_IT(&huart1, MLS_MODBUS, sizeof(MLS_MODBUS));

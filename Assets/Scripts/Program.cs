@@ -153,8 +153,8 @@ public class Program : MonoBehaviour
             controlCount = 0;
         }
 
-        float TargetSteerAngle = ((float)(short)modbusManager.GetHReg(106))/5000.0f;
-
+        float TargetSteerAngle = ((float)(short)modbusManager.GetHReg(106))/100.0f;
+        Debug.Log("TargetSteerAngle: " + TargetSteerAngle.ToString());
         modbusCount++;
         modbusManager.SetHReg(101, modbusCount);
         modbusManager.SetHReg(102, (ushort)(CurrentVelocity * 1000));

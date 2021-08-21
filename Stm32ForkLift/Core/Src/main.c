@@ -20,14 +20,12 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
-#include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
-#include "usbd_cdc_if.h"
 
 /* USER CODE END Includes */
 
@@ -79,6 +77,8 @@ uint8_t uart1_rear = 0;
 
 
 extern int16_t holding_reg[10];
+
+uint8_t modbus_count;
 
 //uint8_t MLS_MODBUS[] = { 0x01, 0x04, 0x03, 0xe8, 0x00, 0x0A, 0xF0, 0x7D };
 uint8_t MLS_MODBUS[] = { 0x01, 0x03, 0x00, 0x64, 0x00, 0x0A, 0x84, 0x12 };
@@ -227,7 +227,6 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
@@ -253,12 +252,6 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
-  PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV1_5;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
   }
@@ -420,10 +413,32 @@ static void MX_USART1_UART_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : STATUS_LED_Pin */
+  GPIO_InitStruct.Pin = STATUS_LED_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(STATUS_LED_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA8 */
+  GPIO_InitStruct.Pin = GPIO_PIN_8;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 }
 
@@ -508,46 +523,55 @@ uint8_t mb_16_req(uint16_t start_addr, uint16_t write_len, uint16_t *write_hreg)
 	return (write_len*2+9);
 }
 
+void processModbusPacket() {
+	if (mb_res_chk_len_crc(uart1_buff, UART1_LEN)) {
+		modbus_count++;
+
+		// Process
+		if (uart1_buff[0] == 0x01) {
+			switch(uart1_buff[1]) {
+			case 3:
+			{
+				uint8_t size = uart1_buff[2]/2;
+				for(uint8_t i=0; i<size; i++)
+				{
+					uint16_t value = uart1_buff[i*2+3];
+					value = (value << 8) + uart1_buff[i*2+4];
+					modbus_hreg[i] = value;
+				}
+				mb_read_hreg_req_f = false;
+				break;
+			}
+			case 16:
+			{
+				mb_write_hreg_req_f = false;
+				break;
+			}
+			}
+		}
+
+		if (mb_read_hreg_req_f) {
+
+		}
+		else if (mb_write_hreg_req_f) {
+			memset(uart1_buff, 255, 0);
+			UART1_CLEAR;
+
+			uint8_t len = mb_16_req(105, 5, modbus_hreg_wr);
+			HAL_UART_Transmit_IT(&huart1, modbus_buf, len);
+//		    CDC_Transmit_FS(modbus_buf, len);
+
+
+			mb_write_hreg_req_f = false;
+		}
+	}
+}
+
 // Called when received Serial data
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if (huart->Instance == USART1) {
 		UART1_PUSH(uart1_Buff_Tmp[0]);
-		if (mb_res_chk_len_crc(uart1_buff, UART1_LEN)) {
-			// Process
-			if (uart1_buff[0] == 0x01) {
-				switch(uart1_buff[1]) {
-				case 3:
-				{
-					uint8_t size = uart1_buff[2]/2;
-					for(uint8_t i=0; i<size; i++)
-					{
-						uint16_t value = uart1_buff[i*2+3];
-						value = (value << 8) + uart1_buff[i*2+4];
-						modbus_hreg[i] = value;
-					}
-					mb_read_hreg_req_f = false;
-					break;
-				}
-				case 16:
-				{
-					mb_write_hreg_req_f = false;
-					break;
-				}
-				}
-			}
-			if (mb_read_hreg_req_f) {
-
-			}
-			else if (mb_write_hreg_req_f) {
-				memset(uart1_buff, 255, 0);
-
-				uint8_t len = mb_16_req(105, 5, modbus_hreg_wr);
-				HAL_UART_Transmit_IT(&huart1, modbus_buf, len);
-
-				mb_write_hreg_req_f = false;
-			}
-		}
 		HAL_UART_Receive_IT(&huart1, uart1_Buff_Tmp, 1);
 	}
 }
@@ -558,6 +582,37 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 	}
 }
 
+int8_t CDC_Receive_Callback(uint8_t* Buf, uint32_t *Len)
+{
+	for (uint32_t i=0; i<*Len; i++) {
+		UART1_PUSH(Buf[i]);
+	}
+	return 0;
+}
+
+
+//static int8_t CDC_Receive_FS(uint8_t* pbuf, uint32_t *Len) {
+//	uint8_t result = USBD_OK;
+//
+////	if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) {
+////		return USBD_FAIL;
+////	}
+////
+////	USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+//
+//	for (uint32_t i=0; i<Len; i++) {
+//		UART1_PUSH(pbuf[i]);
+//	}
+//
+//
+//
+//	return result;
+//
+//}
+
+
+uint16_t sensor_pos = 0;
+uint16_t sensor_count = 0;
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -569,61 +624,77 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
-  /* init code for USB_DEVICE */
-  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 5 */
+	uint8_t i;
+//  CDC_Transmit_FS("Start\n", 6);
+
   /* Infinite loop */
   for(;;)
   {
     osDelay(20);
 
+    HAL_GPIO_TogglePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin);
+
+    processModbusPacket();
+
     vehicle_speed = (int16_t)modbus_hreg[1];
     steer_actual = (int16_t)modbus_hreg[2];
     sensor = (int16_t)modbus_hreg[3];
     steer = 0;
-    if (sensor == 384)
-    {
-    	steer = 0;
+
+    sensor_pos = 0;
+    sensor_count = 0;
+    for (i=0; i<16; i++) {
+    	if (sensor & (1<<i)) {
+    		sensor_pos += (i*1000);
+    		sensor_count++;
+    	}
     }
-    else
-    {
-        for (int i=0; i<16; i++)
-        {
-            if ((sensor & (0x01<<i)) != 0)
-            {
-                if (vehicle_speed > 0)
-                {
-                	steer = (i - 8) * 1000;
-                }
-                else if (vehicle_speed < 0)
-                {
-                	steer = (8 - i) * 1000;
-                }
-                else
-                {
-                	steer = (i - 8) * 1000;
-                }
-                break;
-            }
-        }
+    if (sensor_count > 0) {
+    	sensor_pos = sensor_pos / sensor_count;
     }
+    else {
+    	sensor_pos = 0;
+    }
+
+    if (sensor_pos > 0) {
+    	steer = (sensor_pos - 7500)/50;
+    }
+//    if (sensor == 384)
+//    {
+//    	steer = 0;
+//    }
+//    else
+//    {
+//        for (int i=0; i<16; i++)
+//        {
+//            if ((sensor & (0x01<<i)) != 0)
+//            {
+//                if (vehicle_speed > 0)
+//                {
+//                	steer = (i - 8) * 1000;
+//                }
+//                else if (vehicle_speed < 0)
+//                {
+//                	steer = (8 - i) * 1000;
+//                }
+//                else
+//                {
+//                	steer = (i - 8) * 1000;
+//                }
+//                break;
+//            }
+//        }
+//    }
     modbus_hreg_wr[0] = (uint16_t)steer;
 
 //    mb_read_hreg_req_f = true;
     mb_write_hreg_req_f = true;
 
-    CDC_Transmit_FS(MLS_MODBUS, sizeof(MLS_MODBUS));
-
-	memset(uart1_buff, 255, 0);
+//	memset(uart1_buff, 255, 0);
+	UART1_CLEAR;
+//    CDC_Transmit_FS(MLS_MODBUS, sizeof(MLS_MODBUS));
 	HAL_UART_Transmit_IT(&huart1, MLS_MODBUS, sizeof(MLS_MODBUS));
-
-//	modbus_hreg_wr[0] = 1;
-//	modbus_hreg_wr[1] = 2;
-//	modbus_hreg_wr[2] = 3;
-//	modbus_hreg_wr[3] = 4;
-//	modbus_hreg_wr[4] = 5;
-//	uint8_t len = mb_16_req(105, 5, modbus_hreg_wr);
-//	HAL_UART_Transmit_IT(&huart1, modbus_buf, len);
 
   }
   /* USER CODE END 5 */
@@ -676,8 +747,11 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
+  for(int16_t i = 0;i < *Len;i++)                      // ②
+    PutDataToUartQueue(&CDCQueue, Buf[i]);             // ③
+  USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+  return (USBD_OK);
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

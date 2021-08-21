@@ -58,7 +58,10 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define STATUS_LED_Pin GPIO_PIN_13
+#define STATUS_LED_GPIO_Port GPIOC
 /* USER CODE BEGIN Private defines */
+int8_t CDC_Receive_Callback(uint8_t* Buf, uint32_t *Len);
 
 /* USER CODE END Private defines */
 

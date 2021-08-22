@@ -642,6 +642,7 @@ void StartDefaultTask(void *argument)
     sensor = (int16_t)modbus_hreg[3];
     steer = 0;
 
+    // -- Calculate sensor
     sensor_pos = 0;
     sensor_count = 0;
     for (i=0; i<16; i++) {
@@ -660,33 +661,16 @@ void StartDefaultTask(void *argument)
     if (sensor_pos > 0) {
     	steer = (sensor_pos - 7500)/50;
     }
-//    if (sensor == 384)
-//    {
-//    	steer = 0;
-//    }
-//    else
-//    {
-//        for (int i=0; i<16; i++)
-//        {
-//            if ((sensor & (0x01<<i)) != 0)
-//            {
-//                if (vehicle_speed > 0)
-//                {
-//                	steer = (i - 8) * 1000;
-//                }
-//                else if (vehicle_speed < 0)
-//                {
-//                	steer = (8 - i) * 1000;
-//                }
-//                else
-//                {
-//                	steer = (i - 8) * 1000;
-//                }
-//                break;
-//            }
-//        }
-//    }
     modbus_hreg_wr[0] = (uint16_t)steer;
+
+    // -- Drive
+    if (vehicle_speed < 1000) {
+    	modbus_hreg_wr[1] = 100;
+    }
+    else {
+    	modbus_hreg_wr[1] = 0;
+    }
+
 
 //    mb_read_hreg_req_f = true;
     mb_write_hreg_req_f = true;

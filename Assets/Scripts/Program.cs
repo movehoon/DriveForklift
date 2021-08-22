@@ -154,7 +154,8 @@ public class Program : MonoBehaviour
         }
 
         float TargetSteerAngle = ((float)(short)modbusManager.GetHReg(106))/100.0f;
-        Debug.Log("TargetSteerAngle: " + TargetSteerAngle.ToString());
+        float TargetDrive = ((float)(short)modbusManager.GetHReg(107)) / 1000.0f;
+        //Debug.Log("TargetSteerAngle: " + TargetSteerAngle.ToString());
         modbusCount++;
         modbusManager.SetHReg(101, modbusCount);
         modbusManager.SetHReg(102, (ushort)(CurrentVelocity * 1000));
@@ -165,7 +166,7 @@ public class Program : MonoBehaviour
         //Debug.Log("Hreg106: " + modbusManager.GetHReg(106));
 #if !MOBILE_INPUT
         float handbrake = Input.GetAxis("Jump");
-        m_Car.Move(TargetSteerAngle, v, v, handbrake);
+        m_Car.Move(TargetSteerAngle, TargetDrive, TargetDrive, handbrake);
 
 #else
             m_Car.Move(h, v, v, 0f);

@@ -10,6 +10,7 @@ using UnityEngine.SceneManagement;
 public class Program : MonoBehaviour
 {
     public LineSensor lineSensor;
+    public LineSensor stopSensor;
     public ModbusManager modbusManager;
 
     public Dropdown dropDown_PortNames;
@@ -161,6 +162,7 @@ public class Program : MonoBehaviour
         modbusManager.SetHReg(102, (ushort)(CurrentVelocity * 1000));
         modbusManager.SetHReg(103, (ushort)(m_Car.CurrentSteerAngle * 1000));
         modbusManager.SetHReg(104, (ushort)lineSensor.Value);
+        modbusManager.SetHReg(105, (ushort)stopSensor.Value);
         //Debug.Log("Hreg102: " + modbusManager.GetHReg(102));
         //Debug.Log("Hreg105: " + modbusManager.GetHReg(105));
         //Debug.Log("Hreg106: " + modbusManager.GetHReg(106));

@@ -92,8 +92,15 @@ bool mb_write_hreg_req_f;
 
 int16_t sensor;
 int16_t vehicle_speed;
-int16_t steer = 0;
+int16_t steer;
 int16_t steer_actual;
+int16_t drive_rpm;
+int16_t brake;
+uint16_t rfid_tag;
+uint16_t stop_sensor;
+
+uint8_t drive_state;
+uint8_t stop_wait;
 
 osThreadId_t modbusTaskHandle;
 const osThreadAttr_t modbusTask_attributes = {
@@ -557,7 +564,7 @@ void processModbusPacket() {
 			memset(uart1_buff, 255, 0);
 			UART1_CLEAR;
 
-			uint8_t len = mb_16_req(105, 5, modbus_hreg_wr);
+			uint8_t len = mb_16_req(110, 5, modbus_hreg_wr);
 			HAL_UART_Transmit_IT(&huart1, modbus_buf, len);
 //		    CDC_Transmit_FS(modbus_buf, len);
 
@@ -640,6 +647,9 @@ void StartDefaultTask(void *argument)
     vehicle_speed = (int16_t)modbus_hreg[1];
     steer_actual = (int16_t)modbus_hreg[2];
     sensor = (int16_t)modbus_hreg[3];
+    stop_sensor = modbus_hreg[4];
+    rfid_tag = modbus_hreg[5];
+
     steer = 0;
 
     // -- Calculate sensor
@@ -661,16 +671,59 @@ void StartDefaultTask(void *argument)
     if (sensor_pos > 0) {
     	steer = (sensor_pos - 7500)/50;
     }
+
+    brake = 0;
+
+    switch (drive_state) {
+    case 0:
+        // -- Drive Normal
+        if (vehicle_speed < 1000) {
+        	drive_rpm = 100;
+        }
+        else {
+        	drive_rpm = 0;
+        }
+
+        if (rfid_tag) {
+        	drive_state = 1;
+        }
+        break;
+
+    case 1:
+    	// -- Slow down
+        if (vehicle_speed < 500) {
+        	drive_rpm = 50;
+        }
+        else {
+        	drive_rpm = 0;
+        }
+
+        if (stop_sensor) {
+        	drive_state = 2;
+        }
+    	break;
+
+    case 2:
+    	// -- Detect stops
+    	brake = 1;
+    	stop_wait = 1000;
+    	drive_state = 3;
+    	break;
+
+    case 3:
+    	// -- Keep stop
+    	brake = 1;
+    	if (stop_wait > 0) {
+    		stop_wait--;
+    	}
+    	else {
+    		drive_state = 0;
+    	}
+    }
+
     modbus_hreg_wr[0] = (uint16_t)steer;
-
-    // -- Drive
-    if (vehicle_speed < 1000) {
-    	modbus_hreg_wr[1] = 100;
-    }
-    else {
-    	modbus_hreg_wr[1] = 0;
-    }
-
+    modbus_hreg_wr[1] = (uint16_t)drive_rpm;
+    modbus_hreg_wr[2] = (uint16_t)brake;
 
 //    mb_read_hreg_req_f = true;
     mb_write_hreg_req_f = true;

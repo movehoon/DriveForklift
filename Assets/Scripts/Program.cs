@@ -11,6 +11,7 @@ public class Program : MonoBehaviour
 {
     public LineSensor lineSensor;
     public LineSensor stopSensor;
+    public PosSensor posSensor;
     public ModbusManager modbusManager;
 
     public Dropdown dropDown_PortNames;
@@ -95,51 +96,6 @@ public class Program : MonoBehaviour
         {
             CurrentVelocity *= -1;
         }
-        //if (lineSensor.Value == 384)
-        //{
-        //    pos = 0;
-        //}
-        //else
-        //{
-        //    for (int i=0; i<16; i++)
-        //    {
-        //        if ((lineSensor.Value & (0x01<<i)) != 0)
-        //        {
-        //            if (m_Car.CurrentSpeed > 0)
-        //            {
-        //                pos = (i - 8) * 0.3f;
-        //            }
-        //            else if (m_Car.CurrentSpeed < 0)
-        //            {
-        //                pos = (8 - i) * 0.3f;
-        //            }
-        //            else
-        //            {
-        //                pos = (i - 8) * 0.3f;
-        //            }
-        //            //if (i < 8)
-        //            //{
-        //            //    pos = (8 - i) * 0.1f;
-        //            //}
-        //            //else if (i > 8)
-        //            //{
-        //            //    pos = (i - 8) * 0.1f;
-        //            //}
-        //            break;
-        //        }
-        //    }
-        //}
-        ////Debug.Log("Pos: " + pos.ToString());
-        //if (Math.Abs(pos) < 0.001f)
-        //{
-        //    pos = h;
-        //}
-        //Debug.Log("LineSensor: " + lineSensor.Value.ToString() + ", h: " + h.ToString());
-        //Debug.Log("v: " + v.ToString());
-        //Debug.Log("CurrentVelocity: " + CurrentVelocity.ToString());
-        //Debug.Log("m_Car.Revs: " + m_Car.Revs.ToString());
-        //Debug.Log("m_Car.Skidding: " + m_Car.Skidding.ToString());
-        //Debug.Log("m_Car.Forward: " + m_Car.Forward.ToString());
 
         if_ActualSpeed.text = CurrentVelocity.ToString("0.00");
         if_ActualSteer.text = m_Car.CurrentSteerAngle.ToString("0.00");
@@ -154,8 +110,8 @@ public class Program : MonoBehaviour
             controlCount = 0;
         }
 
-        float TargetSteerAngle = ((float)(short)modbusManager.GetHReg(106))/100.0f;
-        float TargetDrive = ((float)(short)modbusManager.GetHReg(107)) / 1000.0f;
+        float TargetSteerAngle = ((float)(short)modbusManager.GetHReg(111))/100.0f;
+        float TargetDrive = ((float)(short)modbusManager.GetHReg(112)) / 1000.0f;
         //Debug.Log("TargetSteerAngle: " + TargetSteerAngle.ToString());
         modbusCount++;
         modbusManager.SetHReg(101, modbusCount);
@@ -163,15 +119,18 @@ public class Program : MonoBehaviour
         modbusManager.SetHReg(103, (ushort)(m_Car.CurrentSteerAngle * 1000));
         modbusManager.SetHReg(104, (ushort)lineSensor.Value);
         modbusManager.SetHReg(105, (ushort)stopSensor.Value);
+        modbusManager.SetHReg(106, (ushort)posSensor.DetectedID);
         //Debug.Log("Hreg102: " + modbusManager.GetHReg(102));
         //Debug.Log("Hreg105: " + modbusManager.GetHReg(105));
         //Debug.Log("Hreg106: " + modbusManager.GetHReg(106));
 #if !MOBILE_INPUT
-        float handbrake = Input.GetAxis("Jump");
+        //float handbrake = Input.GetAxis("Jump");
+        float handbrake = ((float)(short)modbusManager.GetHReg(113));
         m_Car.Move(TargetSteerAngle, TargetDrive, TargetDrive, handbrake);
 
 #else
             m_Car.Move(h, v, v, 0f);
 #endif
+        //Debug.Log("posSensor: " + posSensor.DetectedID);
     }
 }

@@ -26,6 +26,7 @@ public class Program : MonoBehaviour
     int controlCount;
     float duration;
     ushort modbusCount;
+    ushort destination;
 
     public void OnButtonReset()
     {
@@ -33,6 +34,10 @@ public class Program : MonoBehaviour
         SceneManager.LoadScene("SimFactory");
     }
 
+    public void SetDestination(int id)
+    {
+        destination = (ushort)id;
+    }
 
     public void OnConnect()
     {
@@ -120,6 +125,7 @@ public class Program : MonoBehaviour
         modbusManager.SetHReg(104, (ushort)lineSensor.Value);
         modbusManager.SetHReg(105, (ushort)stopSensor.Value);
         modbusManager.SetHReg(106, (ushort)posSensor.DetectedID);
+        modbusManager.SetHReg(107, (ushort)destination);
         //Debug.Log("Hreg102: " + modbusManager.GetHReg(102));
         //Debug.Log("Hreg105: " + modbusManager.GetHReg(105));
         //Debug.Log("Hreg106: " + modbusManager.GetHReg(106));

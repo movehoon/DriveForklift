@@ -98,6 +98,8 @@ int16_t drive_rpm;
 int16_t brake;
 uint16_t rfid_tag;
 uint16_t stop_sensor;
+uint16_t destination;
+uint16_t position;
 
 uint8_t drive_state;
 uint8_t stop_wait;
@@ -649,8 +651,14 @@ void StartDefaultTask(void *argument)
     sensor = (int16_t)modbus_hreg[3];
     stop_sensor = modbus_hreg[4];
     rfid_tag = modbus_hreg[5];
+    destination = modbus_hreg[6];
 
     steer = 0;
+
+    // -- Current Position
+    if (rfid_tag > 0) {
+    	position = rfid_tag;
+    }
 
     // -- Calculate sensor
     sensor_pos = 0;
@@ -674,8 +682,21 @@ void StartDefaultTask(void *argument)
 
     brake = 0;
 
+    if (destination > 0) {
+    	if (destination != position) {
+    		drive_state = 10;
+    	}
+    }
+    else {
+    	drive_state = 0;
+    }
+
     switch (drive_state) {
     case 0:
+    	drive_rpm = 0;
+    	break;
+
+    case 10:
         // -- Drive Normal
         if (vehicle_speed < 1000) {
         	drive_rpm = 100;
@@ -684,12 +705,12 @@ void StartDefaultTask(void *argument)
         	drive_rpm = 0;
         }
 
-        if (rfid_tag) {
-        	drive_state = 1;
+        if (position == destination) {
+        	drive_state = 11;
         }
         break;
 
-    case 1:
+    case 11:
     	// -- Slow down
         if (vehicle_speed < 500) {
         	drive_rpm = 50;
@@ -699,18 +720,18 @@ void StartDefaultTask(void *argument)
         }
 
         if (stop_sensor) {
-        	drive_state = 2;
+        	drive_state = 12;
         }
     	break;
 
-    case 2:
+    case 12:
     	// -- Detect stops
     	brake = 1;
     	stop_wait = 1000;
-    	drive_state = 3;
+    	drive_state = 13;
     	break;
 
-    case 3:
+    case 13:
     	// -- Keep stop
     	brake = 1;
     	if (stop_wait > 0) {

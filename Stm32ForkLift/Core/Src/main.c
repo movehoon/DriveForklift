@@ -43,6 +43,8 @@
 #define UART1_BACK 		(uart1_buff[uart1_rear])
 #define UART1_CLEAR		(uart1_front = uart1_rear = 0)
 
+#define STATION_MAX	4
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -88,7 +90,12 @@ uint16_t modbus_hreg_wr[10];
 bool mb_read_hreg_req_f;
 bool mb_write_hreg_req_f;
 
-
+uint8_t navi_map[STATION_MAX][STATION_MAX] = {
+		{0, 0, 0, 0},
+		{0, 0, 1, 0},
+		{0, 0, 0, 0},
+		{1, 0, 0, 0},
+};
 
 int16_t sensor;
 int16_t vehicle_speed;

@@ -316,7 +316,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 88ce4a038bb7a4df38688c15d1b9cd97, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  lineSensor: {fileID: 0}
+  lineSensor: {fileID: 172180040}
   stopSensor: {fileID: 630218482}
   posSensor: {fileID: 1182400082}
   modbusManager: {fileID: 482342575}
@@ -1046,6 +1046,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 166099035}
   m_CullTransparentMesh: 1
+--- !u!114 &172180040 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6102620159640887315, guid: a61dfd1f44192044ca87610e35ecad39, type: 3}
+  m_PrefabInstance: {fileID: 1665922196}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46e57e3e61cab44d18a9cf89b518e196, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &205656329
 GameObject:
   m_ObjectHideFlags: 0

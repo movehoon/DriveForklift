@@ -104,7 +104,7 @@ public class Program : MonoBehaviour
 
         if_ActualSpeed.text = CurrentVelocity.ToString("0.00");
         if_ActualSteer.text = m_Car.CurrentSteerAngle.ToString("0.00");
-        if_SensorValue.text = lineSensor.Value.ToString();
+        if_SensorValue.text = lineSensor.RawValue.ToString();
         controlCount++;
         duration += Time.deltaTime;
         if (duration > 1)
@@ -122,8 +122,8 @@ public class Program : MonoBehaviour
         modbusManager.SetHReg(101, modbusCount);
         modbusManager.SetHReg(102, (ushort)(CurrentVelocity * 1000));
         modbusManager.SetHReg(103, (ushort)(m_Car.CurrentSteerAngle * 1000));
-        modbusManager.SetHReg(104, (ushort)lineSensor.Value);
-        modbusManager.SetHReg(105, (ushort)stopSensor.Value);
+        modbusManager.SetHReg(104, (ushort)lineSensor.Position);
+        modbusManager.SetHReg(105, (ushort)stopSensor.RawValue);
         modbusManager.SetHReg(106, (ushort)posSensor.DetectedID);
         modbusManager.SetHReg(107, (ushort)destination);
         //Debug.Log("Hreg102: " + modbusManager.GetHReg(102));

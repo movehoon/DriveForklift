@@ -117,6 +117,7 @@ public class Program : MonoBehaviour
 
         float TargetSteerAngle = ((float)(short)modbusManager.GetHReg(111))/100.0f;
         float TargetDrive = ((float)(short)modbusManager.GetHReg(112)) / 1000.0f;
+        lineSensor.Mode = (LineSensor.SENSOR_MODE)modbusManager.GetHReg(114);
         //Debug.Log("TargetSteerAngle: " + TargetSteerAngle.ToString());
         modbusCount++;
         modbusManager.SetHReg(101, modbusCount);
@@ -126,6 +127,7 @@ public class Program : MonoBehaviour
         modbusManager.SetHReg(105, (ushort)stopSensor.RawValue);
         modbusManager.SetHReg(106, (ushort)posSensor.DetectedID);
         modbusManager.SetHReg(107, (ushort)destination);
+        modbusManager.SetHReg(108, (ushort)lineSensor.Mode);
         //Debug.Log("Hreg102: " + modbusManager.GetHReg(102));
         //Debug.Log("Hreg105: " + modbusManager.GetHReg(105));
         //Debug.Log("Hreg106: " + modbusManager.GetHReg(106));

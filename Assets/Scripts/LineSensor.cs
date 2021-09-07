@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -51,7 +52,7 @@ public class LineSensor : MonoBehaviour
         float count = 0;
         for (int i = 0; i < dotSensors.Length; i++)
         {
-            if ((point & (1<<i)) > 0)
+            if ((point & (1<<i)) != 0)
             {
                 pos += i;
                 count++;
@@ -59,7 +60,7 @@ public class LineSensor : MonoBehaviour
         }
         if (count > 0)
         {
-            pos = (((pos / count) - dotSensors.Length / 2) / (dotSensors.Length/2)) * (sensorWidth / 2);
+            pos = (((pos / count) - (dotSensors.Length/2) + 0.5f) / (dotSensors.Length/2)) * (sensorWidth/2);
         }
         return (int)pos;
     }
@@ -108,40 +109,39 @@ public class LineSensor : MonoBehaviour
             for (int i = 0; i < detectedLines.Count; i++)
             {
                 detectedPos[i] = Point2Position(detectedLines[i]);
-                Debug.Log("[" + i.ToString() + "]From: " + detectedLines[i].ToString() + ", To: " + detectedPos[i]);
+                Debug.Log("[" + i.ToString() + "]From: " + detectedLines[i].ToString("X") + ", To: " + detectedPos[i]);
             }
-            //{
-            //    if (_mode == LineSensor.SENSOR_MODE.MODE_LEFT)
-            //    {
-            //        for (int i = 0; i < dotSensors.Length; i++)
-            //        {
-            //            if (dotSensors[i].isDetected)
-            //            {
-            //                _position = (i-dotSensors.Length) * 500 / (sensorWidth / 2);
-            //            }
-            //        }
-            //    }
-            //    else if (_mode == LineSensor.SENSOR_MODE.MODE_RIGHT)
-            //    {
-            //        for (int i = dotSensors.Length-1; i >= 0; i--)
-            //        {
-            //            if (dotSensors[i].isDetected)
-            //            {
-            //                _position = (dotSensors.Length-i) * 500 / (sensorWidth / 2);
-            //            }
-            //        }
-            //    }
-            //    else
-            //    {
-            //        for (int i = 0; i < dotSensors.Length; i++)
-            //        {
-            //            if (dotSensors[i].isDetected)
-            //            {
-            //                _position += (1 << i);
-            //            }
-            //        }
-            //    }
-            //}
+
+            if (_mode == LineSensor.SENSOR_MODE.MODE_LEFT)
+            {
+                _position = detectedPos[0];
+            }
+            else if (_mode == LineSensor.SENSOR_MODE.MODE_RIGHT)
+            {
+                for (int i=0; i<3; i++)
+                {
+                    if (detectedLines[i] != 0)
+                    {
+                        _position = detectedPos[i];
+                    }
+                }
+            }
+            else
+            {
+                // result to middest
+                int mid_diff = 10000;
+                for (int i=0; i<3; i++)
+                {
+                    if (detectedLines[i] != 0)
+                    {
+                        if (mid_diff > Math.Abs(detectedPos[i]))
+                        {
+                            mid_diff = Math.Abs(detectedPos[i]);
+                            _position = detectedPos[i];
+                        }
+                    }
+                }
+            }
             return _position;
         }
     }

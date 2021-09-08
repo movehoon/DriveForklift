@@ -670,7 +670,7 @@ void StartDefaultTask(void *argument)
     }
 
     // -- Calculate sensor
-	steer = sensor * 5;
+	steer = sensor * 3;
 
     brake = 0;
 

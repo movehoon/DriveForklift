@@ -14,6 +14,7 @@ public class Program : MonoBehaviour
     public PosSensor posSensor;
     public ModbusManager modbusManager;
 
+    public Toggle[] modeToggle;
     public Dropdown dropDown_PortNames;
     public Button button_Connect;
     public InputField if_ActualSpeed;
@@ -23,6 +24,7 @@ public class Program : MonoBehaviour
 
     public NewCarController m_Car; // the car controller we want to use
 
+    int modeAuto;
     int controlCount;
     float duration;
     ushort modbusCount;
@@ -34,6 +36,11 @@ public class Program : MonoBehaviour
         SceneManager.LoadScene("SimFactory");
     }
 
+    public void ChangeMode(int mode)
+    {
+        modeAuto = mode;
+        PlayerPrefs.SetInt("MODE_AUTO", modeAuto);
+    }
     public void SetDestination(int id)
     {
         destination = (ushort)id;
@@ -69,6 +76,16 @@ public class Program : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        modeAuto = PlayerPrefs.GetInt("MODE_AUTO");
+        if (modeAuto > 0)
+        {
+            modeToggle[1].isOn = true;
+        }
+        else
+        {
+            modeToggle[0].isOn = true;
+        }
+
         string[] portNames = SerialPort.GetPortNames();
         dropDown_PortNames.ClearOptions();
         foreach (string portName in portNames)
@@ -134,7 +151,14 @@ public class Program : MonoBehaviour
 #if !MOBILE_INPUT
         //float handbrake = Input.GetAxis("Jump");
         float handbrake = ((float)(short)modbusManager.GetHReg(113));
-        m_Car.Move(TargetSteerAngle, TargetDrive, TargetDrive, handbrake);
+        if (modeAuto>0)
+        {
+            m_Car.Move(TargetSteerAngle, TargetDrive, TargetDrive, handbrake);
+        }
+        else
+        {
+            m_Car.Move(h, v, v, 0f);
+        }
 
 #else
             m_Car.Move(h, v, v, 0f);

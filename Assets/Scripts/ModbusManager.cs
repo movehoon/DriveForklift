@@ -145,7 +145,7 @@ public class ModbusManager : MonoBehaviour
             _port.ReadTimeout = 500;
             _port.WriteTimeout = 500;
             _port.Open();
-
+#if false
             //_master = ModbusSerialMaster.CreateRtu(_port);
             //var adapter = new SerialPortAdapter(_port);
             _slave = ModbusSerialSlave.CreateRtu(1, _port);
@@ -158,7 +158,7 @@ public class ModbusManager : MonoBehaviour
             thread = new Thread(_Connect);
             thread.Start();
             //StartCoroutine("_Connect");
-
+#endif
             PlayerPrefs.SetString("DEV_NAME", portName);
             Debug.Log("Modbus Connect Done");
 

@@ -109,7 +109,7 @@ public class LineSensor : MonoBehaviour
             for (int i = 0; i < detectedLines.Count; i++)
             {
                 detectedPos[i] = Point2Position(detectedLines[i]);
-                Debug.Log("[" + i.ToString() + "]From: " + detectedLines[i].ToString("X") + ", To: " + detectedPos[i]);
+                //Debug.Log("[" + i.ToString() + "]From: " + detectedLines[i].ToString("X") + ", To: " + detectedPos[i]);
             }
 
             if (_mode == LineSensor.SENSOR_MODE.MODE_LEFT)

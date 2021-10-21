@@ -10,6 +10,11 @@ using Modbus.IO;
 using Modbus.Utility;
 //using Modbus.Serial;
 
+public enum ModbusInterface
+{
+    RTU,
+    TCP,
+}
 public class ModbusManager : MonoBehaviour
 {
     SerialPort _port;
@@ -37,28 +42,6 @@ public class ModbusManager : MonoBehaviour
 
     Dictionary<ushort, ushort> writeReg = new Dictionary<ushort, ushort>();
 
-    //public static void StartModbusSerialRtuSlave()
-    //{
-    //    using (SerialPort slavePort = new SerialPort("COM2"))
-    //    {
-    //        // configure serial port
-    //        slavePort.BaudRate = 9600;
-    //        slavePort.DataBits = 8;
-    //        slavePort.Parity = Parity.None;
-    //        slavePort.StopBits = StopBits.One;
-    //        slavePort.Open();
-
-    //        byte unitId = 1;
-
-    //        var adapter = new SerialPortAdapter(slavePort);
-    //        // create modbus slave
-    //        ModbusSlave slave = ModbusSerialSlave.CreateRtu(unitId, adapter);
-    //        slave.DataStore = DataStoreFactory.CreateDefaultDataStore();
-
-    //        slave.ListenAsync().GetAwaiter().GetResult();
-    //    }
-    //}
-
     public void SetHReg(int addr, ushort value)
     {
         if (_slave != null)
@@ -83,23 +66,22 @@ public class ModbusManager : MonoBehaviour
 
     private void Modbus_Request_Event(object sender, Modbus.Device.ModbusSlaveRequestEventArgs e)
     {
-
         //disassemble packet from master
         byte fc = e.Message.FunctionCode;
+        Debug.Log("Modbus_Request_Event " + fc.ToString());
         byte[] data = e.Message.MessageFrame;
         byte[] byteStartAddress = new byte[] { data[3], data[2] };
         byte[] byteNum = new byte[] { data[5], data[4] };
         Int16 StartAddress = BitConverter.ToInt16(byteStartAddress, 0);
         Int16 NumOfPoint = BitConverter.ToInt16(byteNum, 0);
-        //Console.WriteLine(fc.ToString() + "," + StartAddress.ToString() + "," + NumOfPoint.ToString());
-        //Debug.Log("Modbus_Request_Event " + fc.ToString());
+        Debug.Log(fc.ToString() + "," + StartAddress.ToString() + "," + NumOfPoint.ToString());
     }
 
     private void Modbus_DataStoreWriteTo(object sender, Modbus.Data.DataStoreEventArgs e)
     {
         //this.Text = "DataType=" + e.ModbusDataType.ToString() + "  StartAdress=" + e.StartAddress;
         int iAddress = e.StartAddress;//e.StartAddress;
-        //Debug.Log("Modbus_DataStoreWriteTo " + e.ModbusDataType.ToString());
+        Debug.Log("Modbus_DataStoreWriteTo " + e.ModbusDataType.ToString());
         switch (e.ModbusDataType)
         {
             case ModbusDataType.HoldingRegister:
@@ -142,22 +124,22 @@ public class ModbusManager : MonoBehaviour
         if (_port == null && _master == null)
         {
             _port = new SerialPort(portName, 115200, Parity.None, 8, StopBits.One);
-            _port.ReadTimeout = 500;
-            _port.WriteTimeout = 500;
+            _port.ReadTimeout = 50;
+            _port.WriteTimeout = 50;
             _port.Open();
-#if false
+#if true
             //_master = ModbusSerialMaster.CreateRtu(_port);
             //var adapter = new SerialPortAdapter(_port);
             _slave = ModbusSerialSlave.CreateRtu(1, _port);
             _slave.ModbusSlaveRequestReceived += new EventHandler<ModbusSlaveRequestEventArgs>(Modbus_Request_Event);
             //_slave.ListenAsync().GetAwaiter().GetResult();
-            _slave.DataStore = Modbus.Data.DataStoreFactory.CreateTestDataStore();
+            _slave.DataStore = Modbus.Data.DataStoreFactory.CreateDefaultDataStore();
             _slave.DataStore.DataStoreWrittenTo += new EventHandler<DataStoreEventArgs>(Modbus_DataStoreWriteTo);
 
             //_slave.Listen();
-            thread = new Thread(_Connect);
-            thread.Start();
-            //StartCoroutine("_Connect");
+            //thread = new Thread(_Connect);
+            //thread.Start();
+            StartCoroutine("_Connect");
 #endif
             PlayerPrefs.SetString("DEV_NAME", portName);
             Debug.Log("Modbus Connect Done");
@@ -168,31 +150,47 @@ public class ModbusManager : MonoBehaviour
         return false;
     }
 
-    private void _Connect()
-    {
-        while (true)
-        {
-            try
-            {
-                _slave.Listen();
-            }
-            catch (Exception ex)
-            {
-                _reqReconnect = true;
-                Debug.Log(ex.ToString());
-            }
-            Thread.Sleep(1000);
-        }
-    }
-
-    //private IEnumerator _Connect()
+    //private void _Connect()
     //{
     //    while (true)
     //    {
-    //        yield return new WaitForSeconds(0.01f);
-    //        _slave.Listen();
+    //        try
+    //        {
+    //            _slave.Listen();
+    //        }
+    //        catch (Exception ex)
+    //        {
+    //            //_reqReconnect = true;
+    //            Debug.Log(ex.ToString());
+    //        }
+    //        Thread.Sleep(10);
     //    }
     //}
+
+    private IEnumerator _Connect()
+    {
+        bool _run = true;
+        while (_run)
+        {
+            yield return new WaitForSeconds(0.01f);
+            try
+            {
+                if (_slave != null)
+                {
+                    _slave.Listen();
+                }
+                else
+                {
+                    _run = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Log(ex.ToString());
+            }
+        }
+        yield return null;
+    }
 
     public void Disconnect()
     {

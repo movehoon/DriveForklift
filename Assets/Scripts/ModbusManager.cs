@@ -68,20 +68,20 @@ public class ModbusManager : MonoBehaviour
     {
         //disassemble packet from master
         byte fc = e.Message.FunctionCode;
-        Debug.Log("Modbus_Request_Event " + fc.ToString());
+        //Debug.Log("Modbus_Request_Event " + fc.ToString());
         byte[] data = e.Message.MessageFrame;
         byte[] byteStartAddress = new byte[] { data[3], data[2] };
         byte[] byteNum = new byte[] { data[5], data[4] };
         Int16 StartAddress = BitConverter.ToInt16(byteStartAddress, 0);
         Int16 NumOfPoint = BitConverter.ToInt16(byteNum, 0);
-        Debug.Log(fc.ToString() + "," + StartAddress.ToString() + "," + NumOfPoint.ToString());
+        //Debug.Log(fc.ToString() + "," + StartAddress.ToString() + "," + NumOfPoint.ToString());
     }
 
     private void Modbus_DataStoreWriteTo(object sender, Modbus.Data.DataStoreEventArgs e)
     {
         //this.Text = "DataType=" + e.ModbusDataType.ToString() + "  StartAdress=" + e.StartAddress;
         int iAddress = e.StartAddress;//e.StartAddress;
-        Debug.Log("Modbus_DataStoreWriteTo " + e.ModbusDataType.ToString());
+        //Debug.Log("Modbus_DataStoreWriteTo " + e.ModbusDataType.ToString());
         switch (e.ModbusDataType)
         {
             case ModbusDataType.HoldingRegister:
@@ -124,8 +124,8 @@ public class ModbusManager : MonoBehaviour
         if (_port == null && _master == null)
         {
             _port = new SerialPort(portName, 115200, Parity.None, 8, StopBits.One);
-            _port.ReadTimeout = 50;
-            _port.WriteTimeout = 50;
+            _port.ReadTimeout = 500;
+            _port.WriteTimeout = 500;
             _port.Open();
 #if true
             //_master = ModbusSerialMaster.CreateRtu(_port);
@@ -137,9 +137,9 @@ public class ModbusManager : MonoBehaviour
             _slave.DataStore.DataStoreWrittenTo += new EventHandler<DataStoreEventArgs>(Modbus_DataStoreWriteTo);
 
             //_slave.Listen();
-            //thread = new Thread(_Connect);
-            //thread.Start();
-            StartCoroutine("_Connect");
+            thread = new Thread(_Connect);
+            thread.Start();
+            //StartCoroutine("_Connect");
 #endif
             PlayerPrefs.SetString("DEV_NAME", portName);
             Debug.Log("Modbus Connect Done");
@@ -150,47 +150,47 @@ public class ModbusManager : MonoBehaviour
         return false;
     }
 
-    //private void _Connect()
-    //{
-    //    while (true)
-    //    {
-    //        try
-    //        {
-    //            _slave.Listen();
-    //        }
-    //        catch (Exception ex)
-    //        {
-    //            //_reqReconnect = true;
-    //            Debug.Log(ex.ToString());
-    //        }
-    //        Thread.Sleep(10);
-    //    }
-    //}
-
-    private IEnumerator _Connect()
+    private void _Connect()
     {
-        bool _run = true;
-        while (_run)
+        while (true)
         {
-            yield return new WaitForSeconds(0.01f);
             try
             {
-                if (_slave != null)
-                {
-                    _slave.Listen();
-                }
-                else
-                {
-                    _run = false;
-                }
+                _slave.Listen();
             }
             catch (Exception ex)
             {
+                //_reqReconnect = true;
                 Debug.Log(ex.ToString());
             }
+            Thread.Sleep(10);
         }
-        yield return null;
     }
+
+    //private IEnumerator _Connect()
+    //{
+    //    bool _run = true;
+    //    while (_run)
+    //    {
+    //        yield return new WaitForSeconds(0.01f);
+    //        try
+    //        {
+    //            if (_slave != null)
+    //            {
+    //                _slave.Listen();
+    //            }
+    //            else
+    //            {
+    //                _run = false;
+    //            }
+    //        }
+    //        catch (Exception ex)
+    //        {
+    //            Debug.Log(ex.ToString());
+    //        }
+    //    }
+    //    yield return null;
+    //}
 
     public void Disconnect()
     {
